@@ -12,19 +12,24 @@ const io = new Server(server);
 
 try {
     fs.mkdir('uploads');   
-}catch{}
-
-// Limpar a pasta de uploads no início do servidor
-const uploadDir = path.join(__dirname, 'uploads');
-fs.readdir(uploadDir, (err, files) => {
-    if (err) console.error('Erro ao ler a pasta de uploads:', err);
-    files.forEach(file => {
-        const filePath = path.join(uploadDir, file);
-        fs.unlink(filePath, err => {
-            if (err) console.error('Erro ao deletar arquivo:', err);
+}catch{
+    // Limpar a pasta de uploads no início do servidor
+    const uploadDir = path.join(__dirname, 'uploads');
+    fs.readdir(uploadDir, (err, files) => {
+        if (err) {
+            console.error('Erro ao ler a pasta de uploads:', err);
+            return;
+        }
+        files.forEach(file => {
+            const filePath = path.join(uploadDir, file);
+            fs.unlink(filePath, err => {
+                if (err) console.error('Erro ao deletar arquivo:', err);
+            });
         });
     });
-});
+}
+
+
 
 
 // Configurar limite de tamanho de upload (25 MB)
