@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Compartilhamento de Arquivos</title>
+    <style>
+        body { font-family: Arial, sans-serif; max-width: 600px; margin: auto; }
+        ul { list-style: none; padding: 0; }
+        li { margin: 10px 0; padding: 10px; border: 1px solid #ccc; display: flex; justify-content: space-between; }
+    </style>
+</head>
+<body>
+    <h1>Arquivos Disponíveis</h1>
+    <ul id="file-list"></ul>
+    <button onclick="uploadFile()">Enviar Arquivo</button>
+
+    <script src="/socket.io/socket.io.js"></script>
+    <script>
+        const socket = io();
+        let userCoordinates = null;
+
+        // Obter coordenadas do usuário
+        navigator.geolocation.getCurrentPosition(position => {
+            userCoordinates = {
+                latitude: position.coords.latitude,
+                longitude: position.coords.longitude
+            };
+            fetchFiles();
+        });
+
+        // Função para buscar arquivos dentro do raio de 300 metros
+        function fetchFiles() {
+            fetch(`/files?coordinates=${JSON.stringify(userCoordinates)}`)
+                .then(response => response.json())
+                .then(files => {
+                    renderFileList(files);
+                });
+        }
+
+        // Renderizar a lista de arquivos na interface
+        function renderFileList(files) {
+            const fileList = document.getElementById('file-list');
+            fileList.innerHTML = '';
+            files.forEach(file => {
+                const li = document.createElement('li');
+                li.textContent = file.name;
+
+                // Botão de download
+                const downloadButton = document.createElement('button');
+                downloadButton.textContent = 'Baixar';
+                downloadButton.onclick = () => downloadFile(file.name);
+                
+                li.appendChild(downloadButton);
+                fileList.appendChild(li);
+            });
+        }
+
+        // Função para fazer download do arquivo
+        function downloadFile(fileName) {
+            window.location.href = `/download/${fileName}`;
+        }
+
+        // Função para enviar um novo arquivo
+        function uploadFile() {
+            const input = document.createElement('input');
+            input.type = 'file';
+            input.onchange = () => {
+                const formData = new FormData();
+                formData.append('file', input.files[0]);
+                formData.append('coordinates', JSON.stringify(userCoordinates));
+
+                fetch('/upload', { method: 'POST', body: formData })
+                    .then(response => response.json())
+                    .then(fetchFiles);
+            };
+            input.click();
+        }
+
+        // Atualizações em tempo real com Socket.IO
+        socket.on('fileUploaded', fetchFiles);
+        socket.on('fileRemoved', fetchFiles);
+
+        // Carregar lista de arquivos ao iniciar
+        window.onload = fetchFiles;
+    </script>
+</body>
+</html>
